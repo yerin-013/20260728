@@ -106,6 +106,12 @@ function pick(list, rng) {
   return list[Math.floor(rng() * list.length)];
 }
 
+function trackEvent(name, params = {}) {
+  if (typeof window.gtag === "function") {
+    window.gtag("event", name, params);
+  }
+}
+
 function setSaveStatus(message, tone = "neutral") {
   saveStatus.textContent = message;
   saveStatus.dataset.tone = tone;
@@ -429,7 +435,13 @@ resetConversation();
 wireQuickReplies();
 
 birthForm.addEventListener("submit", (event) => handleProfileSubmit(event, "summary"));
-resetBtn.addEventListener("click", resetConversation);
+resetBtn.addEventListener("click", () => {
+  trackEvent("click_reset", {
+    event_category: "engagement",
+    event_label: "new_conversation",
+  });
+  resetConversation();
+});
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
