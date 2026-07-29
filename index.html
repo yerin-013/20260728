@@ -94,6 +94,21 @@
             <button class="primary" type="submit">정보 받기</button>
           </form>
 
+          <details class="secret-box">
+            <summary>Higgsfield 키 입력</summary>
+            <p>API 키와 secret은 이번 세션에서만 사용하고 저장하지 않아요.</p>
+            <div class="secret-grid">
+              <label class="field">
+                API Key
+                <input id="apiKeyInput" type="password" placeholder="API key" autocomplete="off" />
+              </label>
+              <label class="field">
+                API Secret
+                <input id="apiSecretInput" type="password" placeholder="API secret" autocomplete="off" />
+              </label>
+            </div>
+          </details>
+
           <p id="saveStatus" class="save-status" aria-live="polite">
             이름과 생년월일은 제출 시 저장됩니다.
           </p>

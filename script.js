@@ -10,6 +10,8 @@ const chatLog = document.getElementById("chatLog");
 const birthForm = document.getElementById("birthForm");
 const nameInput = document.getElementById("nameInput");
 const birthInput = document.getElementById("birthInput");
+const apiKeyInput = document.getElementById("apiKeyInput");
+const apiSecretInput = document.getElementById("apiSecretInput");
 const resetBtn = document.getElementById("resetBtn");
 const quickRow = document.getElementById("quickRow");
 const saveStatus = document.getElementById("saveStatus");
@@ -161,6 +163,25 @@ function setSaveStatus(message, tone = "neutral") {
   saveStatus.dataset.tone = tone;
 }
 
+function setSessionKeys(apiKey = "", apiSecret = "") {
+  const payload = JSON.stringify({ apiKey, apiSecret });
+  sessionStorage.setItem("higgsfield_credentials", payload);
+}
+
+function getSessionKeys() {
+  try {
+    const raw = sessionStorage.getItem("higgsfield_credentials");
+    if (!raw) return { apiKey: "", apiSecret: "" };
+    const parsed = JSON.parse(raw);
+    return {
+      apiKey: String(parsed.apiKey || ""),
+      apiSecret: String(parsed.apiSecret || ""),
+    };
+  } catch {
+    return { apiKey: "", apiSecret: "" };
+  }
+}
+
 function formatToday() {
   const formatter = new Intl.DateTimeFormat("ko-KR", {
     weekday: "long",
@@ -251,18 +272,18 @@ function classifyMood(score) {
 
 function getPosterAccent(zodiac) {
   const palette = {
-    양자리: { main: "#ff8a7a", soft: "#ffe6e1", accent: "#a43b30" },
-    황소자리: { main: "#94c973", soft: "#e8f6dd", accent: "#3f6a2f" },
-    쌍둥이자리: { main: "#82b4ff", soft: "#e6f0ff", accent: "#305a9f" },
-    게자리: { main: "#d6a0d8", soft: "#f6e8f7", accent: "#7d4f80" },
-    사자자리: { main: "#ffb84d", soft: "#fff0d7", accent: "#9a6100" },
+    양자리: { main: "#ff8a7a", soft: "#ffe6e1", accent: "#8f372c" },
+    황소자리: { main: "#94c973", soft: "#e8f6dd", accent: "#4f7e35" },
+    쌍둥이자리: { main: "#82b4ff", soft: "#e6f0ff", accent: "#355fa6" },
+    게자리: { main: "#d6a0d8", soft: "#f6e8f7", accent: "#8a5b8d" },
+    사자자리: { main: "#ffb84d", soft: "#fff0d7", accent: "#a86b00" },
     처녀자리: { main: "#74c8b5", soft: "#def6f0", accent: "#2c6c5b" },
-    천칭자리: { main: "#f28fb4", soft: "#fde5ef", accent: "#9c3d61" },
-    전갈자리: { main: "#9a7cff", soft: "#ece6ff", accent: "#4a31a8" },
+    천칭자리: { main: "#f28fb4", soft: "#fde5ef", accent: "#a24168" },
+    전갈자리: { main: "#9a7cff", soft: "#ece6ff", accent: "#4d33ab" },
     사수자리: { main: "#7fd0ff", soft: "#e5f7ff", accent: "#2a7293" },
-    염소자리: { main: "#9da3ad", soft: "#eceef1", accent: "#4d5560" },
+    염소자리: { main: "#9da3ad", soft: "#eceef1", accent: "#535b66" },
     물병자리: { main: "#6ee7d8", soft: "#e2fbf7", accent: "#2f897d" },
-    물고기자리: { main: "#a49aff", soft: "#efecff", accent: "#5148ac" },
+    물고기자리: { main: "#a49aff", soft: "#efecff", accent: "#5a50c6" },
   };
 
   return palette[zodiac] || { main: "#8e7dff", soft: "#eee9ff", accent: "#4338ca" };
@@ -276,21 +297,30 @@ function createFortuneCard(profile) {
   const { main, soft, accent } = getPosterAccent(profile.zodiac);
   const seed = seedFromString(`${profile.rawDate}-${profile.name}`);
   const rng = mulberry32(seed);
+  const fortuneColor = profile.color || "보라";
+  const colorTone = {
+    보라: { bg: "#f5efff", accent: "#5d43cb", soft: "#ece5ff" },
+    크림: { bg: "#fff7e8", accent: "#8a5d00", soft: "#fff0cf" },
+    네이비: { bg: "#eef3ff", accent: "#2f4d92", soft: "#dde7ff" },
+    민트: { bg: "#ecfbf6", accent: "#22786d", soft: "#d8f4ea" },
+    버건디: { bg: "#f8e9ee", accent: "#8f3755", soft: "#f0d6e0" },
+    살구: { bg: "#fff1e7", accent: "#ad5a2d", soft: "#ffe0cc" },
+  }[fortuneColor] || { bg: "#f5efff", accent: "#5d43cb", soft: "#ece5ff" };
 
   const bg = ctx.createLinearGradient(0, 0, 1024, 1536);
-  bg.addColorStop(0, "#fefaf5");
-  bg.addColorStop(0.55, soft);
-  bg.addColorStop(1, "#fffdf9");
+  bg.addColorStop(0, "#ffffff");
+  bg.addColorStop(0.5, colorTone.bg);
+  bg.addColorStop(1, "#fffdfb");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const glow = ctx.createRadialGradient(220, 180, 30, 220, 180, 380);
-  glow.addColorStop(0, `${main}55`);
+  glow.addColorStop(0, `${main}33`);
   glow.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "rgba(74, 21, 75, 0.10)";
+  ctx.fillStyle = "rgba(74, 21, 75, 0.08)";
   for (let i = 0; i < 22; i += 1) {
     const x = 80 + rng() * 864;
     const y = 120 + rng() * 1160;
@@ -300,54 +330,52 @@ function createFortuneCard(profile) {
     ctx.fill();
   }
 
-  ctx.strokeStyle = `${main}66`;
-  ctx.lineWidth = 6;
+  ctx.strokeStyle = `${main}55`;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.roundRect(48, 48, 928, 1440, 48);
+  ctx.roundRect(56, 56, 912, 1424, 48);
   ctx.stroke();
 
-  ctx.fillStyle = "#ffffff";
-  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = "rgba(255,255,255,0.78)";
   ctx.beginPath();
-  ctx.roundRect(82, 92, 860, 1350, 42);
+  ctx.roundRect(88, 88, 848, 1350, 42);
   ctx.fill();
-  ctx.globalAlpha = 1;
 
   // top pill
-  ctx.fillStyle = soft;
-  ctx.strokeStyle = main;
+  ctx.fillStyle = colorTone.soft;
+  ctx.strokeStyle = colorTone.accent;
   ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.roundRect(336, 148, 352, 80, 40);
+  ctx.roundRect(338, 150, 348, 80, 40);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = accent;
+  ctx.fillStyle = colorTone.accent;
   ctx.font = "700 34px Inter, Noto Sans KR, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText("오늘의 운세", 512, 188);
 
   // zodiac centerpiece
-  ctx.fillStyle = `${main}1c`;
+  ctx.fillStyle = `${main}16`;
   ctx.beginPath();
-  ctx.arc(512, 570, 210, 0, Math.PI * 2);
+  ctx.arc(512, 560, 212, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = main;
   ctx.beginPath();
-  ctx.arc(512, 570, 132, 0, Math.PI * 2);
+  ctx.arc(512, 560, 136, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.fillStyle = "#ffffff";
   ctx.beginPath();
-  ctx.arc(512, 570, 98, 0, Math.PI * 2);
+  ctx.arc(512, 560, 100, 0, Math.PI * 2);
   ctx.fill();
 
-  ctx.fillStyle = accent;
-  ctx.font = "800 100px Inter, Noto Sans KR, sans-serif";
-  ctx.fillText(profile.zodiac, 512, 560);
-  ctx.font = "600 30px Inter, Noto Sans KR, sans-serif";
-  ctx.fillText(profile.profileType, 512, 650);
+  ctx.fillStyle = colorTone.accent;
+  ctx.font = "700 74px Inter, Noto Sans KR, sans-serif";
+  ctx.fillText("별자리", 512, 548);
+  ctx.font = "600 28px Inter, Noto Sans KR, sans-serif";
+  ctx.fillText(profile.zodiac, 512, 624);
 
   // stars and small ornament
   const stars = [
@@ -362,7 +390,7 @@ function createFortuneCard(profile) {
     ctx.arc(x, y, size, 0, Math.PI * 2);
     ctx.fill();
   });
-  ctx.strokeStyle = `${main}88`;
+  ctx.strokeStyle = `${main}72`;
   ctx.lineWidth = 4;
   ctx.beginPath();
   ctx.moveTo(302, 470);
@@ -371,32 +399,34 @@ function createFortuneCard(profile) {
   ctx.stroke();
 
   // summary panel
-  ctx.fillStyle = "rgba(255,255,255,0.86)";
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
   ctx.beginPath();
-  ctx.roundRect(128, 860, 768, 412, 34);
+  ctx.roundRect(128, 860, 768, 418, 34);
   ctx.fill();
 
-  ctx.fillStyle = accent;
-  ctx.font = "800 72px Inter, Noto Sans KR, sans-serif";
+  ctx.fillStyle = colorTone.accent;
+  ctx.font = "800 56px Inter, Noto Sans KR, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(profile.name, 512, 940);
 
   ctx.fillStyle = "#1d1d1d";
-  ctx.font = "700 34px Inter, Noto Sans KR, sans-serif";
-  ctx.fillText(`${profile.zodiac} · ${profile.mood}`, 512, 1004);
+  ctx.font = "700 32px Inter, Noto Sans KR, sans-serif";
+  ctx.fillText(`${profile.zodiac} · ${profile.mood}`, 512, 1000);
 
-  ctx.font = "500 32px Noto Sans KR, sans-serif";
+  ctx.font = "500 30px Noto Sans KR, sans-serif";
+  ctx.textAlign = "left";
   wrapLines(
     ctx,
     profile.summary,
     178,
-    1084,
+    1074,
     668,
-    52,
-    5,
+    50,
+    4,
   );
 
   // footer chips
+  ctx.textAlign = "center";
   const chips = [
     profile.focus,
     `${profile.age}세`,
@@ -408,14 +438,14 @@ function createFortuneCard(profile) {
   const chipY = 1358;
   chips.forEach((chip, index) => {
     const width = ctx.measureText(chip).width + 56;
-    ctx.fillStyle = index === 0 ? main : soft;
+    ctx.fillStyle = index === 0 ? main : colorTone.soft;
     ctx.beginPath();
     ctx.roundRect(chipX, chipY, width, 58, 29);
     ctx.fill();
     ctx.strokeStyle = `${main}44`;
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.fillStyle = index === 0 ? "#ffffff" : accent;
+    ctx.fillStyle = index === 0 ? "#ffffff" : colorTone.accent;
     ctx.font = "700 26px Inter, Noto Sans KR, sans-serif";
     ctx.fillText(chip, chipX + width / 2, chipY + 30);
     chipX += width + 16;
@@ -555,6 +585,9 @@ function resetConversation() {
   chatLog.innerHTML = "";
   nameInput.value = "";
   birthInput.value = "";
+  apiKeyInput.value = "";
+  apiSecretInput.value = "";
+  sessionStorage.removeItem("higgsfield_credentials");
   const introBody = `
     <p>안녕하세요. 생년월일을 입력해 주시면 기본 정보를 정리해서 알려드릴게요.</p>
     <p>이 봇은 만 나이, 별자리, 생일 숫자, 오늘의 체크포인트를 한 번에 읽기 쉽게 보여줍니다.</p>
@@ -598,10 +631,20 @@ async function handleProfileSubmit(event, mode = "summary") {
 
   const rawDate = birthInput.value;
   const rawName = nameInput.value || "";
+  const apiKey = apiKeyInput.value.trim();
+  const apiSecret = apiSecretInput.value.trim();
 
   if (!rawDate) {
     renderMessage("bot", "봇", "<p>생년월일을 먼저 입력해 주세요.</p>", "입력 필요");
     return;
+  }
+
+  if (apiKey && apiSecret) {
+    setSessionKeys(apiKey, apiSecret);
+    setSaveStatus("Higgsfield 키를 받아 카드 생성 중입니다.", "loading");
+  } else {
+    sessionStorage.removeItem("higgsfield_credentials");
+    setSaveStatus("Higgsfield 키 없이 로컬 카드로 생성합니다.", "neutral");
   }
 
   const birthDate = new Date(`${rawDate}T12:00:00`);

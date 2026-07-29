@@ -751,6 +751,32 @@ h1 {
   margin-bottom: 14px;
 }
 
+.secret-box {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(74, 21, 75, 0.08);
+  background: linear-gradient(135deg, #fff, var(--canvas-lavender));
+}
+
+.secret-box summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.secret-box p {
+  margin: 10px 0 12px;
+  color: var(--ink-mute);
+  line-height: 1.7;
+}
+
+.secret-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
 .save-status {
   margin: 0 0 14px;
   color: var(--ink-mute);
@@ -864,6 +890,10 @@ h1 {
   .chat-card,
   .info-card {
     padding: 22px;
+  }
+
+  .secret-grid {
+    grid-template-columns: 1fr;
   }
 }
 
