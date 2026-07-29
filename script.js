@@ -112,6 +112,50 @@ function trackEvent(name, params = {}) {
   }
 }
 
+function wrapLines(ctx, text, x, y, maxWidth, lineHeight, maxLines = Infinity) {
+  const paragraphs = String(text).split("\n");
+  let lineCount = 0;
+
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    let line = "";
+
+    if (words.length === 0) {
+      y += lineHeight;
+      lineCount += 1;
+      continue;
+    }
+
+    for (const word of words) {
+      const testLine = line ? `${line} ${word}` : word;
+      const { width } = ctx.measureText(testLine);
+
+      if (width > maxWidth && line) {
+        ctx.fillText(line, x, y);
+        y += lineHeight;
+        lineCount += 1;
+        line = word;
+
+        if (lineCount >= maxLines) {
+          return;
+        }
+      } else {
+        line = testLine;
+      }
+    }
+
+    if (line) {
+      ctx.fillText(line, x, y);
+      y += lineHeight;
+      lineCount += 1;
+    }
+
+    if (lineCount >= maxLines) {
+      return;
+    }
+  }
+}
+
 function setSaveStatus(message, tone = "neutral") {
   saveStatus.textContent = message;
   saveStatus.dataset.tone = tone;
@@ -205,6 +249,181 @@ function classifyMood(score) {
   return "점검";
 }
 
+function getPosterAccent(zodiac) {
+  const palette = {
+    양자리: { main: "#ff8a7a", soft: "#ffe6e1", accent: "#a43b30" },
+    황소자리: { main: "#94c973", soft: "#e8f6dd", accent: "#3f6a2f" },
+    쌍둥이자리: { main: "#82b4ff", soft: "#e6f0ff", accent: "#305a9f" },
+    게자리: { main: "#d6a0d8", soft: "#f6e8f7", accent: "#7d4f80" },
+    사자자리: { main: "#ffb84d", soft: "#fff0d7", accent: "#9a6100" },
+    처녀자리: { main: "#74c8b5", soft: "#def6f0", accent: "#2c6c5b" },
+    천칭자리: { main: "#f28fb4", soft: "#fde5ef", accent: "#9c3d61" },
+    전갈자리: { main: "#9a7cff", soft: "#ece6ff", accent: "#4a31a8" },
+    사수자리: { main: "#7fd0ff", soft: "#e5f7ff", accent: "#2a7293" },
+    염소자리: { main: "#9da3ad", soft: "#eceef1", accent: "#4d5560" },
+    물병자리: { main: "#6ee7d8", soft: "#e2fbf7", accent: "#2f897d" },
+    물고기자리: { main: "#a49aff", soft: "#efecff", accent: "#5148ac" },
+  };
+
+  return palette[zodiac] || { main: "#8e7dff", soft: "#eee9ff", accent: "#4338ca" };
+}
+
+function createFortuneCard(profile) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1024;
+  canvas.height = 1536;
+  const ctx = canvas.getContext("2d");
+  const { main, soft, accent } = getPosterAccent(profile.zodiac);
+  const seed = seedFromString(`${profile.rawDate}-${profile.name}`);
+  const rng = mulberry32(seed);
+
+  const bg = ctx.createLinearGradient(0, 0, 1024, 1536);
+  bg.addColorStop(0, "#fefaf5");
+  bg.addColorStop(0.55, soft);
+  bg.addColorStop(1, "#fffdf9");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const glow = ctx.createRadialGradient(220, 180, 30, 220, 180, 380);
+  glow.addColorStop(0, `${main}55`);
+  glow.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "rgba(74, 21, 75, 0.10)";
+  for (let i = 0; i < 22; i += 1) {
+    const x = 80 + rng() * 864;
+    const y = 120 + rng() * 1160;
+    const r = 4 + rng() * 8;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = `${main}66`;
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.roundRect(48, 48, 928, 1440, 48);
+  ctx.stroke();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.globalAlpha = 0.55;
+  ctx.beginPath();
+  ctx.roundRect(82, 92, 860, 1350, 42);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // top pill
+  ctx.fillStyle = soft;
+  ctx.strokeStyle = main;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(336, 148, 352, 80, 40);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = accent;
+  ctx.font = "700 34px Inter, Noto Sans KR, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("오늘의 운세", 512, 188);
+
+  // zodiac centerpiece
+  ctx.fillStyle = `${main}1c`;
+  ctx.beginPath();
+  ctx.arc(512, 570, 210, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = main;
+  ctx.beginPath();
+  ctx.arc(512, 570, 132, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(512, 570, 98, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = accent;
+  ctx.font = "800 100px Inter, Noto Sans KR, sans-serif";
+  ctx.fillText(profile.zodiac, 512, 560);
+  ctx.font = "600 30px Inter, Noto Sans KR, sans-serif";
+  ctx.fillText(profile.profileType, 512, 650);
+
+  // stars and small ornament
+  const stars = [
+    [302, 470, 22],
+    [732, 462, 18],
+    [260, 708, 16],
+    [766, 730, 16],
+  ];
+  ctx.fillStyle = main;
+  stars.forEach(([x, y, size]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.strokeStyle = `${main}88`;
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(302, 470);
+  ctx.lineTo(512, 360);
+  ctx.lineTo(732, 462);
+  ctx.stroke();
+
+  // summary panel
+  ctx.fillStyle = "rgba(255,255,255,0.86)";
+  ctx.beginPath();
+  ctx.roundRect(128, 860, 768, 412, 34);
+  ctx.fill();
+
+  ctx.fillStyle = accent;
+  ctx.font = "800 72px Inter, Noto Sans KR, sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText(profile.name, 512, 940);
+
+  ctx.fillStyle = "#1d1d1d";
+  ctx.font = "700 34px Inter, Noto Sans KR, sans-serif";
+  ctx.fillText(`${profile.zodiac} · ${profile.mood}`, 512, 1004);
+
+  ctx.font = "500 32px Noto Sans KR, sans-serif";
+  wrapLines(
+    ctx,
+    profile.summary,
+    178,
+    1084,
+    668,
+    52,
+    5,
+  );
+
+  // footer chips
+  const chips = [
+    profile.focus,
+    `${profile.age}세`,
+    `행운색 ${profile.color}`,
+    `주의 ${profile.caution}`,
+  ];
+
+  let chipX = 178;
+  const chipY = 1358;
+  chips.forEach((chip, index) => {
+    const width = ctx.measureText(chip).width + 56;
+    ctx.fillStyle = index === 0 ? main : soft;
+    ctx.beginPath();
+    ctx.roundRect(chipX, chipY, width, 58, 29);
+    ctx.fill();
+    ctx.strokeStyle = `${main}44`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = index === 0 ? "#ffffff" : accent;
+    ctx.font = "700 26px Inter, Noto Sans KR, sans-serif";
+    ctx.fillText(chip, chipX + width / 2, chipY + 30);
+    chipX += width + 16;
+  });
+
+  return canvas.toDataURL("image/png");
+}
+
 function buildProfile(rawDate, rawName) {
   const birthDate = new Date(`${rawDate}T12:00:00`);
   const today = new Date();
@@ -275,11 +494,13 @@ function renderMessage(role, title, body, meta = "") {
 function renderBotResponse(profile, mode = "summary") {
   const title = mode === "today" ? "오늘 팁" : "정보 결과";
   const meta = `${profile.birthdayLabel} · ${profile.zodiac}`;
+  const fortuneCard = createFortuneCard(profile);
 
   let body = "";
 
   if (mode === "today") {
     body = `
+      <img class="fortune-art" src="${fortuneCard}" alt="${escapeHTML(profile.zodiac)} 운세 카드" />
       <p>${escapeHTML(profile.name)}님, 오늘은 <strong>${escapeHTML(profile.focus)}</strong> 쪽에 힘을 쓰면 좋습니다.</p>
       <p>${escapeHTML(profile.todayTip)}</p>
       <ul>
@@ -290,6 +511,7 @@ function renderBotResponse(profile, mode = "summary") {
     `;
   } else if (mode === "detail") {
     body = `
+      <img class="fortune-art" src="${fortuneCard}" alt="${escapeHTML(profile.zodiac)} 운세 카드" />
       <p>${escapeHTML(profile.summary)}</p>
       <ul>
         <li>생일 숫자: ${escapeHTML(String(profile.lifePath))} (${escapeHTML(profile.profileType)})</li>
@@ -302,6 +524,7 @@ function renderBotResponse(profile, mode = "summary") {
     `;
   } else {
     body = `
+      <img class="fortune-art" src="${fortuneCard}" alt="${escapeHTML(profile.zodiac)} 운세 카드" />
       <p>${escapeHTML(profile.summary)}</p>
       <ul>
         <li>만 나이: ${escapeHTML(String(profile.age))}세</li>

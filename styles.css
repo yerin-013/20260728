@@ -705,6 +705,20 @@ h1 {
   margin: 0 0 10px;
 }
 
+.bubble-body img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0 0 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(74, 21, 75, 0.08);
+  box-shadow: 0 18px 40px rgba(74, 21, 75, 0.12);
+}
+
+.fortune-art {
+  background: #fff;
+}
+
 .bubble-body ul {
   padding-left: 18px;
 }
