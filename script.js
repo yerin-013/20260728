@@ -12,6 +12,7 @@ const nameInput = document.getElementById("nameInput");
 const birthInput = document.getElementById("birthInput");
 const resetBtn = document.getElementById("resetBtn");
 const quickRow = document.getElementById("quickRow");
+const saveStatus = document.getElementById("saveStatus");
 
 const ageValue = document.getElementById("ageValue");
 const zodiacValue = document.getElementById("zodiacValue");
@@ -103,6 +104,11 @@ function mulberry32(seed) {
 
 function pick(list, rng) {
   return list[Math.floor(rng() * list.length)];
+}
+
+function setSaveStatus(message, tone = "neutral") {
+  saveStatus.textContent = message;
+  saveStatus.dataset.tone = tone;
 }
 
 function formatToday() {
@@ -334,9 +340,31 @@ function resetConversation() {
   previewChipA.textContent = "별자리";
   previewChipB.textContent = "나이";
   previewChipC.textContent = "숫자";
+  setSaveStatus("이름과 생년월일은 제출 시 저장됩니다.", "neutral");
 }
 
-function handleProfileSubmit(event, mode = "summary") {
+async function saveProfileToDatabase(profile) {
+  const response = await fetch("/api/save-profile", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: profile.name,
+      birthDate: profile.rawDate,
+    }),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "저장에 실패했습니다.");
+  }
+
+  return data;
+}
+
+async function handleProfileSubmit(event, mode = "summary") {
   event.preventDefault();
 
   const rawDate = birthInput.value;
@@ -364,6 +392,17 @@ function handleProfileSubmit(event, mode = "summary") {
 
   const profile = buildProfile(rawDate, rawName);
   updateSidebar(profile);
+
+  setSaveStatus("Supabase에 저장 중...", "loading");
+  try {
+    await saveProfileToDatabase(profile);
+    setSaveStatus("Supabase에 저장 완료되었습니다.", "success");
+    renderMessage("bot", "봇", "<p>입력한 이름과 생년월일을 저장했어요.</p>", "저장 완료");
+  } catch (error) {
+    setSaveStatus("저장 실패: 잠시 후 다시 시도해 주세요.", "error");
+    renderMessage("bot", "봇", `<p>저장은 실패했지만 정보 안내는 계속할 수 있어요.</p><p>${escapeHTML(error.message)}</p>`, "저장 오류");
+  }
+
   renderBotResponse(profile, mode);
 }
 
